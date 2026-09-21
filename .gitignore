@@ -1,0 +1,24 @@
+# Temporary PDF/HTML rendering files
+tmp/
+tmp_report_preview.html
+
+# Keil generated build products and user-specific settings
+code/Objects/
+code/Listings/
+code/*.uvguix.*
+code/*.uvguix
+
+# Provided reference manuals (large source documents)
+c8t6 datasheet.pdf
+STM32中文参考手册_V10.pdf.pdf
+*CSDN博客.pdf
+
+# Original oversized GIF exports; compressed CSDN versions are retained
+images/外接led.gif
+images/板载.gif
+
+# Common temporary files
+*.bak
+*.tmp
+Thumbs.db
+.DS_Store
