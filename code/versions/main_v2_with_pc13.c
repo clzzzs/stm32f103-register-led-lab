@@ -14,11 +14,6 @@
 #define GPIOB_BSRR_REG              REG32(0x40010C10u) /* 0x40010C00+0x10，控制GPIOB输出。 */
 #define GPIOC_BSRR_REG              REG32(0x40011010u) /* 0x40011000+0x10，控制GPIOC输出。 */
 
-/* Cortex-M3 SysTick寄存器的绝对地址。 */
-#define SYSTICK_CTRL_REG            REG32(0xE000E010u) /* 控制及状态寄存器。 */
-#define SYSTICK_LOAD_REG            REG32(0xE000E014u) /* 计数重装载值寄存器。 */
-#define SYSTICK_VALUE_REG           REG32(0xE000E018u) /* 当前计数值寄存器。 */
-
 /* GPIOC_CRH中PC13和PC15配置字段的起始位。 */
 #define PC13_CONFIG_SHIFT           20u
 #define PC15_CONFIG_SHIFT           28u
@@ -30,32 +25,22 @@
 #define GPIO_OUTPUT_2MHZ_PP         0x02u
 #define GPIO_FLOATING_INPUT         0x04u
 
-/* 使用SysTick产生约1秒的阻塞延时。
- * 当前SystemCoreClock为72 MHz，SysTick选择HCLK/8作为时钟源，
- * 因此计数频率为9 MHz，计数9 000 000次所需时间为1秒。
+/* 软件空循环延时函数。
+ * t表示需要延时的毫秒数；外层循环每执行一次，约延时1 ms。
+ * volatile和__NOP()可防止编译器把无实际结果的空循环优化掉。
+ * 该延时会受系统时钟和编译优化等级影响，8000是按当前72 MHz工程实测使用的近似值。
  */
-static void delay_1s(void)
+static void Delay_ms(volatile unsigned int t)
 {
-    SYSTICK_CTRL_REG = 0u; /* 清除ENABLE位，配置前先关闭SysTick。 */
+    volatile unsigned int i;
 
-    /* SystemCoreClock=72 MHz，选择HCLK/8后计数频率为9 MHz。
-     * 计数器从LOAD递减到0共经历LOAD+1个时钟周期，
-     * 所以1秒延时的LOAD值应为9 000 000-1。
-     */
-    SYSTICK_LOAD_REG = SystemCoreClock / 8u - 1u;
-    SYSTICK_VALUE_REG = 0u; /* 写入任意值都会清零当前计数器和COUNTFLAG。 */
-
-    /* CTRL位0 ENABLE=1：启动计数；位1 TICKINT=0：不产生中断；
-     * 位2 CLKSOURCE=0：选择HCLK/8作为SysTick时钟源。
-     */
-    SYSTICK_CTRL_REG = 1u;
-
-    /* CTRL寄存器位16为COUNTFLAG，计数到0后由硬件置1。 */
-    while ((SYSTICK_CTRL_REG & (1u << 16)) == 0u)
+    while (t--)
     {
+        for (i = 0u; i < 8000u; i++)
+        {
+            __NOP(); /* 执行一条空操作指令，只消耗CPU时间，不改变寄存器状态。 */
+        }
     }
-
-    SYSTICK_CTRL_REG = 0u;                       /* 延时结束后关闭SysTick。 */
 }
 
 /* 修改GPIOC_CRH中的一个4位配置字段。
@@ -109,18 +94,18 @@ int main(void)
         gpio_c_set_config(PC13_CONFIG_SHIFT, GPIO_FLOATING_INPUT);
         gpio_c_set_config(PC15_CONFIG_SHIFT, GPIO_OUTPUT_2MHZ_PP);
         GPIOC_BSRR_REG = (1u << 15);             /* BS15=1，蓝灯亮。 */
-        delay_1s();
+        Delay_ms(1000u);                         /* 软件延时约1000 ms。 */
         GPIOC_BSRR_REG = (1u << 31);             /* BR15=1，蓝灯灭。 */
         gpio_c_set_config(PC15_CONFIG_SHIFT, GPIO_FLOATING_INPUT);
 
         /* 阶段2：点亮PA0控制的外接红灯。 */
         GPIOA_BSRR_REG = (1u << 0);              /* BS0=1，红灯亮。 */
-        delay_1s();
+        Delay_ms(1000u);                         /* 软件延时约1000 ms。 */
         GPIOA_BSRR_REG = (1u << 16);             /* BR0=1，红灯灭。 */
 
         /* 阶段3：点亮PB0控制的外接绿灯。 */
         GPIOB_BSRR_REG = (1u << 0);              /* BS0=1，绿灯亮。 */
-        delay_1s();
+        Delay_ms(1000u);                         /* 软件延时约1000 ms。 */
         GPIOB_BSRR_REG = (1u << 16);             /* BR0=1，绿灯灭。 */
 
         /* 阶段4：点亮PC13控制的板载LED。
@@ -130,7 +115,7 @@ int main(void)
         gpio_c_set_config(PC15_CONFIG_SHIFT, GPIO_FLOATING_INPUT);
         gpio_c_set_config(PC13_CONFIG_SHIFT, GPIO_OUTPUT_2MHZ_PP);
         GPIOC_BSRR_REG = (1u << 29);             /* BR13=1，板载LED亮。 */
-        delay_1s();
+        Delay_ms(1000u);                         /* 软件延时约1000 ms。 */
         GPIOC_BSRR_REG = (1u << 13);             /* BS13=1，板载LED灭。 */
         gpio_c_set_config(PC13_CONFIG_SHIFT, GPIO_FLOATING_INPUT);
     }

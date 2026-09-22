@@ -1,6 +1,6 @@
 # STM32F103C8T6寄存器流水灯实验
 
-本项目使用STM32F103C8T6 Blue Pill核心板，通过C语言直接操作RCC、GPIO和SysTick寄存器，实现三只外接LED流水灯，并在第二版程序中加入PC13板载LED。
+本项目使用STM32F103C8T6 Blue Pill核心板，通过C语言直接操作RCC和GPIO寄存器，并使用软件空循环延时，实现三只外接LED流水灯，在第二版程序中加入PC13板载LED。
 
 ## 实验内容
 
